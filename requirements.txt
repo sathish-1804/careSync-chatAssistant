@@ -1,0 +1,7 @@
+Flask 
+Flask-CORS 
+langchain-community 
+langchain-anthropic 
+SQLAlchemy
+python-dotenv
+mysql-connector-python
