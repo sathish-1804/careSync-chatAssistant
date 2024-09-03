@@ -10,6 +10,7 @@ import dotenv
 app = Flask(__name__)
 CORS(app)
 dotenv.load_dotenv()
+
 # Set API Key
 os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
 
@@ -29,8 +30,6 @@ def process_context():
     if not question:
         return jsonify({"error": "No context provided"}), 400
 
-    # Example question from the contex
-
     db_schema = db.get_table_info()
     
     # Build the prompt
@@ -44,7 +43,7 @@ def process_context():
         DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
         If the question does not seem related to the database, just return "null" as the answer.
         
-        Now I want you to generate the structured query (in single line ending with semi-colon) for below question: {question} for the specidied user id: {userId}.
+        Now I want you to generate the structured query (in single line ending with semi-colon) for below question: {question} for the specified user id: {userId}.
     """
 
     # Get the response from the chain
@@ -63,9 +62,10 @@ def process_context():
         # Properly invoke the chain for the answer generation step
         answer = chain.invoke({
             "question": f"""
-            Based on the sql response, write an intuitive answer for the user question, it should short and crisp. :
+            Based on the sql response, write an intuitive answer for the user question, it should be short and crisp. :
                 User Question: {question},
                 sql_response: {sql_response}
+                if could not find the answer, return a helpful and relevant answer to the user's question.
             """
         })
         match = re.search(r'Answer:\s*(.*)', answer, re.DOTALL)
@@ -73,9 +73,23 @@ def process_context():
             final_answer = match.group(1).strip()  # Extracts the text after "Answer:"
             return jsonify({"answer": final_answer})
         else:
-            return jsonify({"error": "Answer not found in the response"}), 500
+            return jsonify({"error": "Try again later"}), 500
     else:
-        return jsonify({"error": "SQL query not found in the response"}), 500
+        # If the SQL query is not found, answer the user's question directly using the LLM
+        fallback_answer = chain.invoke({
+            "question": f"""
+            Since a SQL query could not be generated, provide a helpful and relevant answer to the user's question, it should be super short and crisp. :
+                User Question: {question}
+            """
+        })
+        
+        # Extract the final answer
+        fallback_match = re.search(r'Answer:\s*(.*)', fallback_answer, re.DOTALL)
+        if fallback_match:
+            final_answer = fallback_match.group(1).strip()  # Extracts the text after "Answer:"
+            return jsonify({"answer": final_answer})
+        else:
+            return jsonify({"error": "Try again later"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
