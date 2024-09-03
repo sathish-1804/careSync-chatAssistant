@@ -2,6 +2,6 @@ Flask
 Flask-CORS 
 langchain-community 
 langchain-anthropic 
-SQLAlchemy
+gunicorn
 python-dotenv
 mysql-connector-python
