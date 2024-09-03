@@ -4,4 +4,7 @@ langchain-community
 langchain-anthropic 
 gunicorn
 python-dotenv
+setuptools
+wheel
+distribute
 mysql-connector-python
